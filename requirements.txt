@@ -1,9 +1,10 @@
 ﻿fastapi
 uvicorn
-langchain
-langchain-community
-sentence-transformers
-faiss-cpu
-pypdf
-python-multipart
 pydantic
+python-multipart
+langchain-community
+langchain-text-splitters
+faiss-cpu
+transformers
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch

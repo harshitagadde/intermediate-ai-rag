@@ -3,7 +3,6 @@ from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.embeddings import DeterministicFakeEmbedding
 from langchain_community.vectorstores import FAISS
-from transformers import pipeline
 
 DB_FAISS_PATH = 'vectorstore/db_faiss'
 
@@ -11,12 +10,19 @@ class RAGEngine:
     def __init__(self):
         self.embeddings = DeterministicFakeEmbedding(size=384)
         self.vector_store = None
-        # Load a lightweight local text generation pipeline
-        self.generator = pipeline(
-            "text-generation", 
-            model="google/flan-t5-small", 
-            max_new_tokens=150
-        )
+        self._generator = None
+
+    @property
+    def generator(self):
+        # Lazy load model only when queried to save RAM during startup
+        if self._generator is None:
+            from transformers import pipeline
+            self._generator = pipeline(
+                "text-generation", 
+                model="google/flan-t5-small", 
+                max_new_tokens=100
+            )
+        return self._generator
 
     def ingest_pdf(self, pdf_path: str):
         loader = PyPDFLoader(pdf_path)
@@ -49,7 +55,6 @@ class RAGEngine:
         docs = self.vector_store.similarity_search(user_query, k=k)
         retrieved_context = "\n".join([doc.page_content for doc in docs])
         
-        # Ground question on retrieved context
         prompt = f"Answer the question based only on the context below.\nContext: {retrieved_context}\nQuestion: {user_query}\nAnswer:"
         generated_text = self.generator(prompt)[0]['generated_text']
         
